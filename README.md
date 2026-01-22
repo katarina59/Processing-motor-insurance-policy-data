@@ -117,7 +117,7 @@ The engine supports **metadata-driven validation rules**:
 ### Input (`data/input/events/motor_policy/sample.jsonl`):
 
 ```json
-{"policy_number":"12345","driver_age":45,"plate_number":"",}
+{"policy_number":"12345","driver_age":45,"plate_number":""}
 {"policy_number":"67890","plate_number":"ABC-123"}
 {"policy_number":"54321","driver_age":30,"plate_number":"XYZ-789"}
 {"policy_number":"11111","driver_age":20,"plate_number":"DEF-456"}
