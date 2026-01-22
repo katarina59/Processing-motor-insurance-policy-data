@@ -1,5 +1,7 @@
 import json
-from pyspark.sql.functions import col, lit, current_timestamp, date_format, create_map, length, regexp_extract
+from pyspark.sql.functions import (size, array_union,when, array, struct, col, lit, 
+                                   length, regexp_extract, col, lit, current_timestamp, 
+                                   date_format, length, regexp_extract)
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -78,6 +80,7 @@ class DataflowEngine:
     
     # Validate fields and split data into valid (OK) and invalid (KO) datasets
     def _validate_fields(self, transformation):
+        
         params = transformation['params']
         input_name = params['input']
         df = self.dataframes[input_name]
@@ -87,9 +90,11 @@ class DataflowEngine:
         logger.info(f"Input: {input_name}")
         logger.info(f"Validations to apply: {len(validations)}")
         
-        # Start with all records as potentially valid
-        valid_df = df
-        invalid_records = []
+        # Create a column to track all validation errors
+        df_with_errors = df.withColumn('validation_errors', array())
+        
+        # Track overall validity
+        is_valid_expr = lit(True)
         
         for validation in validations:
             field = validation['field']
@@ -101,7 +106,6 @@ class DataflowEngine:
                 # Parse rule (can be "rule" or "rule:param")
                 rule_parts = rule.split(':')
                 rule_name = rule_parts[0]
-                rule_param = rule_parts[1] if len(rule_parts) > 1 else None
                 
                 invalid_condition = None
                 error_message = ""
@@ -116,70 +120,38 @@ class DataflowEngine:
                     invalid_condition = (col(field) == '') | (col(field).isNull())
                     error_message = f"{field} is empty"
                 
-                # RULE 3: minLength
-                elif rule_name == 'minLength' and rule_param:
-                    min_len = int(rule_param)
-                    invalid_condition = (length(col(field)) < min_len) | (col(field).isNull())
-                    error_message = f"{field} length < {min_len}"
-                
-                # RULE 4: plateFormat (e.g., ABC-123)
-                elif rule_name == 'plateFormat':
-                    # Regex for plate format: 3 letters, dash, 3 digits
-                    plate_pattern = r'^[A-Z]{3}-[0-9]{3}$'
-                    invalid_condition = (
-                        (regexp_extract(col(field), plate_pattern, 0) == '') |
-                        (col(field).isNull())
-                    )
-                    error_message = f"{field} invalid format (expected: XXX-999)"
-                
-                # RULE 5: range (e.g., range:18-80)
-                elif rule_name == 'range' and rule_param:
-                    min_val, max_val = map(int, rule_param.split('-'))
-                    invalid_condition = (
-                        (col(field) < min_val) |
-                        (col(field) > max_val) |
-                        (col(field).isNull())
-                    )
-                    error_message = f"{field} not in range [{min_val}, {max_val}]"
-                
-                # RULE 6: positive
-                elif rule_name == 'positive':
-                    invalid_condition = (col(field) <= 0) | (col(field).isNull())
-                    error_message = f"{field} is not positive"
-                
-                # RULE 7: maxValue
-                elif rule_name == 'maxValue' and rule_param:
-                    max_val = float(rule_param)
-                    invalid_condition = (col(field) > max_val) | (col(field).isNull())
-                    error_message = f"{field} exceeds max value {max_val}"
-                
                 else:
                     logger.warning(f"Unknown validation rule: {rule}")
                     continue
                 
-                # Find invalid records for this rule
+                # Add error to array if this rule fails
                 if invalid_condition is not None:
-                    invalid = valid_df.filter(invalid_condition)
-                    invalid_count = invalid.count()
+                    error_struct = struct(
+                        lit(field).alias('field'),
+                        lit(rule).alias('rule'),
+                        lit(error_message).alias('message')
+                    )
                     
-                    if invalid_count > 0:
-                        # Add validation error information
-                        invalid = invalid.withColumn(
-                            'validation_errors',
-                            create_map(
-                                lit('field'), lit(field),
-                                lit('rule'), lit(rule),
-                                lit('message'), lit(error_message)
-                            )
-                        )
-                        invalid_records.append(invalid)
-                        logger.info(f"     Found {invalid_count} records failing '{rule}' on {field}")
+                    df_with_errors = df_with_errors.withColumn(
+                        'validation_errors',
+                        when(invalid_condition, 
+                            array_union(col('validation_errors'), array(error_struct))
+                        ).otherwise(col('validation_errors'))
+                    )
                     
-                    # Keep only valid records for next validation
-                    valid_df = valid_df.filter(~invalid_condition)
+                    # Track if ANY validation fails
+                    is_valid_expr = is_valid_expr & ~invalid_condition
         
-        # Store validation results
+        # Valid records have no errors
+        valid_df = df_with_errors.filter(size(col('validation_errors')) == 0).drop('validation_errors')
+        
+        # Invalid records have at least one error
+        invalid_df = df_with_errors.filter(size(col('validation_errors')) > 0)
+        
+        # Store results
         valid_count = valid_df.count()
+        invalid_count = invalid_df.count()
+        
         self.dataframes['validation_ok'] = valid_df
         logger.info(f"\n Valid records: {valid_count}")
         
@@ -187,19 +159,11 @@ class DataflowEngine:
             logger.info("Sample valid records:")
             valid_df.show(truncate=False)
         
-        # Combine all invalid records
-        if invalid_records:
-            invalid_df = invalid_records[0]
-            for inv in invalid_records[1:]:
-                invalid_df = invalid_df.union(inv)
-            
-            invalid_count = invalid_df.count()
+        if invalid_count > 0:
             self.dataframes['validation_ko'] = invalid_df
             logger.info(f"\n Invalid records: {invalid_count}")
-            
-            if invalid_count > 0:
-                logger.info("Sample invalid records:")
-                invalid_df.show(truncate=False)
+            logger.info("Sample invalid records:")
+            invalid_df.show(truncate=False)
         else:
             logger.info("\n No invalid records found")
     
@@ -263,6 +227,6 @@ class DataflowEngine:
             logger.info(f"Format: {format_type}, Mode: {save_mode}")
             
             # Write data
-            df.write.mode(save_mode).format(format_type).save(path)
+            df.coalesce(1).write.mode(save_mode).format(format_type).save(path)
             
             logger.info(f" Successfully written to {path}")

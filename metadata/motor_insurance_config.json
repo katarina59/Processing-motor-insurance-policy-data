@@ -18,28 +18,37 @@
             "validations": [
                 {
                     "field": "policy_number",
-                    "validations": ["notEmpty", "minLength:5"]
+                    "validations": ["notEmpty"]
                 },
                 {
                     "field": "plate_number",
-                    "validations": ["notEmpty", "plateFormat"]
+                    "validations": ["notEmpty"]
                 },
                 {
                     "field": "driver_age",
-                    "validations": ["notNull", "range:18-80"]
-                },
-                {
-                    "field": "premium_amount",
-                    "validations": ["notNull", "positive", "maxValue:10000"]
+                    "validations": ["notNull"]
                 }
                 ]
           }
         },
         {
-          "name": "add_ingestion_date",
+          "name": "add_ingestion_date_ok",
           "type": "add_fields",
           "params": {
             "input": "validation_ok",
+            "addFields": [
+              {
+                "name": "ingestion_dt",
+                "function": "current_timestamp"
+              }
+            ]
+          }
+        },
+        {
+          "name": "add_ingestion_date_ko",
+          "type": "add_fields",
+          "params": {
+            "input": "validation_ko",
             "addFields": [
               {
                 "name": "ingestion_dt",
@@ -51,14 +60,14 @@
       ],
       "sinks": [
         {
-          "input": "add_ingestion_date",
+          "input": "add_ingestion_date_ok",
           "name": "raw-ok",
           "paths": ["data/output/events/motor_policy"],
           "format": "json",
           "saveMode": "overwrite"
         },
         {
-          "input": "validation_ko",
+          "input": "add_ingestion_date_ko",
           "name": "raw-ko",
           "paths": ["data/output/discards/motor_policy"],
           "format": "json",

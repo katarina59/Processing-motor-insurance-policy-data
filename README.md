@@ -100,18 +100,13 @@ The engine supports **metadata-driven validation rules**:
 |---------------|-------------------------------------|------------------------------|
 | `notNull`     | `"validations": ["notNull"]`        | Field cannot be null         |
 | `notEmpty`    | `"validations": ["notEmpty"]`       | Field cannot be empty string |
-| `minLength:N` | `"validations": ["minLength:5"]`    | Minimum string length        |
-| `plateFormat` | `"validations": ["plateFormat"]`    | Matches `ABC-123` pattern    |
-| `range:X-Y`   | `"validations": ["range:18-80"]`    | Numeric range validation     |
-| `positive`    | `"validations": ["positive"]`       | Value must be > 0            |
-| `maxValue:N`  | `"validations": ["maxValue:10000"]` | Maximum numeric value        |
 
 **Example metadata config:**
 
 ```json
 {
   "field": "driver_age",
-  "validations": ["notNull", "range:18-80"]
+  "validations": ["notNull"]
 }
 ```
 
@@ -122,10 +117,10 @@ The engine supports **metadata-driven validation rules**:
 ### Input (`data/input/events/motor_policy/sample.jsonl`):
 
 ```json
-{"policy_number":"12345","driver_age":45,"plate_number":"","premium_amount":500}
-{"policy_number":"67890","plate_number":"ABC-123","premium_amount":750}
-{"policy_number":"54321","driver_age":30,"plate_number":"XYZ-789","premium_amount":600}
-{"policy_number":"11111","driver_age":17,"plate_number":"DEF-456","premium_amount":1200}
+{"policy_number":"12345","driver_age":45,"plate_number":"",}
+{"policy_number":"67890","plate_number":"ABC-123"}
+{"policy_number":"54321","driver_age":30,"plate_number":"XYZ-789"}
+{"policy_number":"11111","driver_age":20,"plate_number":"DEF-456"}
 ```
 
 ### Output - Valid Records (OK):
@@ -135,7 +130,6 @@ The engine supports **metadata-driven validation rules**:
   "policy_number": "54321",
   "driver_age": 30,
   "plate_number": "XYZ-789",
-  "premium_amount": 600,
   "ingestion_dt": "2025-01-22 14:30:00"
 }
 ```
@@ -147,12 +141,12 @@ The engine supports **metadata-driven validation rules**:
   "policy_number": "12345",
   "driver_age": 45,
   "plate_number": "",
-  "premium_amount": 500,
   "validation_errors": {
     "field": "plate_number",
     "rule": "notEmpty",
     "message": "plate_number is empty"
-  }
+  },
+  "ingestion_dt": "2025-01-22 14:30:00"
 }
 ```
 
