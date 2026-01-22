@@ -65,18 +65,7 @@ This project demonstrates a **dynamic, metadata-driven ETL pipeline** built with
 
 ## 🚀 Quick Start
 
-### Option 1: Standalone PySpark (Manual)
-
-```bash
-# Build and run the pipeline
-docker-compose --profile manual up pipeline
-
-# View output
-ls -la data/output/events/motor_policy/
-ls -la data/output/discards/motor_policy/
-```
-
-### Option 2: Airflow Orchestration (Production)
+### Airflow Orchestration (Production)
 
 ```bash
 # Start Airflow services
