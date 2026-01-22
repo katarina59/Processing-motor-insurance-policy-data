@@ -110,6 +110,7 @@ The engine supports **metadata-driven validation rules**:
 {"policy_number":"67890","plate_number":"ABC-123"}
 {"policy_number":"54321","driver_age":30,"plate_number":"XYZ-789"}
 {"policy_number":"11111","driver_age":20,"plate_number":"DEF-456"}
+{"policy_number":"","driver_age":40,"plate_number":""}
 ```
 
 ### Output - Valid Records (OK):
@@ -119,6 +120,12 @@ The engine supports **metadata-driven validation rules**:
   "policy_number": "54321",
   "driver_age": 30,
   "plate_number": "XYZ-789",
+  "ingestion_dt": "2025-01-22 14:30:00"
+},
+{
+  "policy_number": "11111",
+  "driver_age": 20,
+  "plate_number": "DEF-456",
   "ingestion_dt": "2025-01-22 14:30:00"
 }
 ```
@@ -134,7 +141,23 @@ The engine supports **metadata-driven validation rules**:
     "field": "plate_number",
     "rule": "notEmpty",
     "message": "plate_number is empty"
-  },
+    },
+  "ingestion_dt": "2025-01-22 14:30:00"
+},
+{
+  "policy_number": "",
+  "driver_age": 40,
+  "plate_number": "",
+  "validation_errors": {
+    "field": "policy_number",
+    "rule": "notEmpty",
+    "message": "policy_number is empty"
+    },
+    {
+      "field": "plate_number",
+      "rule": "notEmpty",
+      "message": "plate_number is empty"
+    }
   "ingestion_dt": "2025-01-22 14:30:00"
 }
 ```
