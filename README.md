@@ -169,7 +169,7 @@ The engine supports **metadata-driven validation rules**:
 1. **Add rule to `dataflow_engine.py`:**
 
 ```python
-elif rule_name == 'yourRule' and rule_param:
+elif rule_name == 'yourRule':
     invalid_condition = your_logic_here
     error_message = f"{field} failed your rule"
 ```
