@@ -152,6 +152,12 @@ elif rule_name == 'yourRule':
 
 ---
 
+## Airflow UI
+
+![alt text](image-1.png)
+
+--
+
 ## 🧹 Cleanup
 
 ```bash
