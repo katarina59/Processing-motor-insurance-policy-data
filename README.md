@@ -152,11 +152,11 @@ elif rule_name == 'yourRule':
 
 ---
 
-## Airflow UI
+## 🎯 Airflow UI
 
 ![alt text](image-1.png)
 
---
+---
 
 ## 🧹 Cleanup
 
