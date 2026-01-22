@@ -1,7 +1,7 @@
 import json
-from pyspark.sql.functions import (size, array_union,when, array, struct, col, lit, 
-                                   length, regexp_extract, col, lit, current_timestamp, 
-                                   date_format, length, regexp_extract)
+from pyspark.sql.functions import (size, array_union,when, array, struct, col, 
+                                   lit, col, lit, current_timestamp, 
+                                   date_format)
 import logging
 
 logging.basicConfig(level=logging.INFO)

@@ -116,50 +116,15 @@ The engine supports **metadata-driven validation rules**:
 ### Output - Valid Records (OK):
 
 ```json
-{
-  "driver_age": 30,
-  "plate_number": "XYZ-789",
-  "policy_number": "54321",
-  "ingestion_dt": "2025-01-22 10:41:42"
-},
-{
-  "driver_age": 20,
-  "plate_number": "DEF-456",
-  "policy_number": "11111",
-  "ingestion_dt": "2025-01-22 10:41:42"
-}
+{"driver_age":30,"plate_number":"XYZ-789","policy_number":"54321","ingestion_dt":"2026-01-22 11:24:00"}
+{"driver_age":20,"plate_number":"DEF-456","policy_number":"11111","ingestion_dt":"2026-01-22 11:24:00"}
 ```
 
 ### Output - Invalid Records (KO):
 
 ```json
-{
-  "driver_age": 45,
-  "plate_number": "",
-  "policy_number": "12345",
-  "validation_errors": {
-    "field": "plate_number",
-    "rule": "notEmpty",
-    "message": "plate_number is empty"
-    },
-  "ingestion_dt": "2025-01-22 10:41:42"
-},
-{
-  "driver_age": 40,
-  "plate_number": "",
-  "policy_number": "",
-  "validation_errors": {
-    "field": "policy_number",
-    "rule": "notEmpty",
-    "message": "policy_number is empty"
-    },
-    {
-      "field": "plate_number",
-      "rule": "notEmpty",
-      "message": "plate_number is empty"
-    }
-  "ingestion_dt": "2025-01-22 10:41:42"
-}
+{"driver_age":45,"plate_number":"","policy_number":"12345","validation_errors":[{"field":"plate_number","rule":"notEmpty","message":"plate_number is empty"}],"ingestion_dt":"2026-01-22 11:24:02"}
+{"driver_age":40,"plate_number":"","policy_number":"","validation_errors":[{"field":"policy_number","rule":"notEmpty","message":"policy_number is empty"},{"field":"plate_number","rule":"notEmpty","message":"plate_number is empty"}],"ingestion_dt":"2026-01-22 11:24:02"}
 ```
 
 ---
@@ -196,8 +161,6 @@ docker-compose down
 # Remove volumes (database)
 docker-compose down -v
 
-# Clean output directories
-rm -rf data/output/*
 ```
 
 ---
