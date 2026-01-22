@@ -1,4 +1,6 @@
 import json
+import os
+import glob
 from pyspark.sql.functions import (size, array_union,when, array, struct, col, 
                                    lit, col, lit, current_timestamp, 
                                    date_format)
@@ -228,5 +230,11 @@ class DataflowEngine:
             
             # Write data
             df.coalesce(1).write.mode(save_mode).format(format_type).save(path)
+
+            if format_type == "json":
+                json_files = glob.glob(f"{path}/part-*.json")
+                for f in json_files:
+                    new_name = f.replace(".json", ".jsonl")
+                    os.rename(f, new_name)
             
             logger.info(f" Successfully written to {path}")
