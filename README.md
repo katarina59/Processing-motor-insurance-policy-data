@@ -1,1 +1,208 @@
-# Processing-motor-insurance-policy-data
+# 🚗 Motor Insurance Data Pipeline
+
+**Metadata-driven PySpark framework for validating and ingesting motor insurance policy data**
+
+## 📋 Overview
+
+This project demonstrates a **dynamic, metadata-driven ETL pipeline** built with PySpark that:
+- ✅ Reads configuration from JSON metadata (no hardcoded logic)
+- ✅ Applies business validation rules to insurance policies
+- ✅ Splits records into validated (OK) and rejected (KO) datasets
+- ✅ Adds audit metadata (ingestion timestamps)
+- ✅ Fully containerized with Docker
+- ✅ Production-ready with Airflow orchestration
+
+---
+
+## 🏗️ Architecture
+
+```
+                ┌─────────────────┐
+                │  JSON Metadata  │
+                │   (Config)      │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────────────────────────────┐
+                │       DataflowEngine (PySpark)          │
+                │  ┌─────────┐  ┌──────────┐  ┌────────┐  │
+                │  │ Sources │─>│Transform │─>│ Sinks  │  │
+                │  └─────────┘  └──────────┘  └────────┘  │
+                └─────────────────────────────────────────┘
+                        │
+                        ├───> output/events/motor_policy (OK)
+                        └───> output/discards/motor_policy (KO)
+```
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── dags/
+│   └── motor_insurance_dag.py           # Airflow DAG definition
+├── data/
+│   ├── input/events/motor_policy/      
+                        └── sample.jsonl # Input JSON files
+│   └── output/
+│       ├── events/motor_policy/         # Validated records
+│       └── discards/motor_policy/       # Rejected records
+├── metadata/
+│   └── motor_insurance_config.json      # Pipeline configuration
+├── src/
+│   ├── engine/
+│   │   └── dataflow_engine.py           # Core processing engine
+│   └── utils/
+│       └── spark_session.py             # Spark session factory
+├── docker-compose.yml                   # Multi-container orchestration
+├── Dockerfile                           # PySpark standalone image
+├── Dockerfile.airflow                   # Airflow image
+└── requirements.txt                     # Python dependencies
+```
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Standalone PySpark (Manual)
+
+```bash
+# Build and run the pipeline
+docker-compose --profile manual up pipeline
+
+# View output
+ls -la data/output/events/motor_policy/
+ls -la data/output/discards/motor_policy/
+```
+
+### Option 2: Airflow Orchestration (Production)
+
+```bash
+# Start Airflow services
+docker-compose up -d
+
+# Access Airflow UI
+http://localhost:8080
+# Username: admin
+# Password: admin
+
+# Trigger the DAG: "motor_policy_ingestion"
+```
+
+---
+
+## 🔧 Validation Rules
+
+The engine supports **metadata-driven validation rules**:
+
+|    Rule       |               Example               |         Description          |
+|---------------|-------------------------------------|------------------------------|
+| `notNull`     | `"validations": ["notNull"]`        | Field cannot be null         |
+| `notEmpty`    | `"validations": ["notEmpty"]`       | Field cannot be empty string |
+| `minLength:N` | `"validations": ["minLength:5"]`    | Minimum string length        |
+| `plateFormat` | `"validations": ["plateFormat"]`    | Matches `ABC-123` pattern    |
+| `range:X-Y`   | `"validations": ["range:18-80"]`    | Numeric range validation     |
+| `positive`    | `"validations": ["positive"]`       | Value must be > 0            |
+| `maxValue:N`  | `"validations": ["maxValue:10000"]` | Maximum numeric value        |
+
+**Example metadata config:**
+
+```json
+{
+  "field": "driver_age",
+  "validations": ["notNull", "range:18-80"]
+}
+```
+
+---
+
+## 📊 Sample Data
+
+### Input (`data/input/events/motor_policy/sample.jsonl`):
+
+```json
+{"policy_number":"12345","driver_age":45,"plate_number":"","premium_amount":500}
+{"policy_number":"67890","plate_number":"ABC-123","premium_amount":750}
+{"policy_number":"54321","driver_age":30,"plate_number":"XYZ-789","premium_amount":600}
+{"policy_number":"11111","driver_age":17,"plate_number":"DEF-456","premium_amount":1200}
+```
+
+### Output - Valid Records (OK):
+
+```json
+{
+  "policy_number": "54321",
+  "driver_age": 30,
+  "plate_number": "XYZ-789",
+  "premium_amount": 600,
+  "ingestion_dt": "2025-01-22 14:30:00"
+}
+```
+
+### Output - Invalid Records (KO):
+
+```json
+{
+  "policy_number": "12345",
+  "driver_age": 45,
+  "plate_number": "",
+  "premium_amount": 500,
+  "validation_errors": {
+    "field": "plate_number",
+    "rule": "notEmpty",
+    "message": "plate_number is empty"
+  }
+}
+```
+
+---
+
+## 🧪 Adding New Validations
+
+1. **Add rule to `dataflow_engine.py`:**
+
+```python
+elif rule_name == 'yourRule' and rule_param:
+    invalid_condition = your_logic_here
+    error_message = f"{field} failed your rule"
+```
+
+2. **Update metadata config:**
+
+```json
+{
+  "field": "your_field",
+  "validations": ["yourRule:param"]
+}
+```
+
+3. **Run pipeline** - no code changes needed!
+
+---
+
+## 🧹 Cleanup
+
+```bash
+# Stop all services
+docker-compose down
+
+# Remove volumes (database)
+docker-compose down -v
+
+# Clean output directories
+rm -rf data/output/*
+```
+
+---
+
+## 📝 Key Takeaways
+
+This project demonstrates:
+
+1. **Metadata-driven design** - configuration over code
+2. **Data quality enforcement** - validation with audit trails
+3. **Separation of concerns** - engine, config, orchestration
+4. **Production-ready patterns** - containerization, logging, scheduling
+
+**Perfect for:** Data engineers building scalable, maintainable ETL pipelines.
